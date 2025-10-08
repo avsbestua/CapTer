@@ -1,6 +1,11 @@
 from moviepy import VideoFileClip, CompositeVideoClip, TextClip
 import whisper
-import tqdm
+
+def format_time(seconds):
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    seconds_only = seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{seconds_only:06.3f}".replace('.', ',')
 
 text_clips = [] #list for text clips
 
@@ -17,30 +22,25 @@ model = whisper.load_model("medium")
 result = model.transcribe('audio.mp3', language='uk')
 print("Transcribed")
 
-pbar = tqdm.tqdm(total=len(result["segments"]))
+srt_content = []
+subtitle_number = 1
+
 
 for seg in result["segments"]:
+    start_time = format_time(seg["start"])
+    end_time = format_time(seg["end"])
     text = seg["text"].strip()
 
-    text = text[:-1] if text[-1] else text
+    text = text[:-1] if text[-1] in ['.', ','] else text
 
-    txt_clip = TextClip(
-        text=text,
-        font='font.ttf',
-        font_size=32,
-        color='white',
-        stroke_color='black',
-        stroke_width=2,
-        method='caption',
-        size=(video.w, 600)
-    ).with_start(seg["start"]).with_end(seg["end"]).with_position('bottom')
+    srt_content.append(str(subtitle_number))
+    srt_content.append(f"{start_time} --> {end_time}")
+    srt_content.append(text)
+    srt_content.append("")
 
-    text_clips.append(txt_clip)
+    subtitle_number += 1
 
-    pbar.update(1)
+with open('subs.srt', 'w', encoding='utf-8') as f:
+    f.write('\n'.join(srt_content))
 
-pbar.close()
-
-final_vid = CompositeVideoClip([video, *text_clips])
-
-final_vid.write_videofile('result.mp4', codec='h264_nvenc', threads=4)
+print("Файл субтитрів 'subtitles_editable.srt' створено.")

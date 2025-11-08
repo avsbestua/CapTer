@@ -1,6 +1,8 @@
 from moviepy import TextClip, VideoFileClip, CompositeVideoClip
+from tkinter.messagebox import showerror, showinfo
+import os
 
-font = './fonts/font.ttf'
+font = './fonts/Overpass.ttf'
 
 def str_to_sec(time_str):
     time_str = time_str.replace(',', '.')
@@ -53,10 +55,17 @@ def create_clips_from_srt(srt_filepath, video_width):
 
     return final_clips
 
+def render_video(video_path):
+    if not video_path:
+        showerror("Error", "Create captions first before rendering the video.")
+        return
+    
+    video = VideoFileClip(video_path)
 
-video = VideoFileClip('video.mp4')
+    text_clips = create_clips_from_srt('subs.srt', video.w)
+    vid = CompositeVideoClip([video, *text_clips])
 
-text_clips = create_clips_from_srt('subs.srt', video.w)
-vid = CompositeVideoClip([video, *text_clips])
-
-vid.write_videofile('result.mp4', threads=4, bitrate='500k')
+    showinfo("Info", "Rendering video. This may take a while... Don't close the program.")
+    vid.write_videofile('result.mp4', threads=4)
+    showinfo("Success", "Video rendered successfully as result.mp4. Opening it...")
+    os.system('open result.mp4')
